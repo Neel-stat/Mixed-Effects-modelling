@@ -1,0 +1,90 @@
+---
+title: "Mixed effect Model"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE,warning = FALSE)
+```
+
+Assume	 you	knew	nothing	about	males	and	females,	and	you	were	interested	in	whether the	voice	pitch	of	males	and	females	differs,	and	if	so,	by	how	much.We shall use Bodo Winter's politeness data.
+
+we're aiming for a relationship that looks like something like this:
+
+`pitch ~ politeness+gender`
+
+where politeness is treated as a categorical factor with two levels. ~ *polite &informal*
+
+Our design was so that we took multiple measures per subject. That is, each subject gavemultiple polite responses and multiple informal responses. 
+Every person has a  slightly different voice pitch, and this is going to be an idiosyncratic factor that affects all responses from the same subject, thus rendering these different responses inter-dependent rather than independent.
+
+##Now we shall begin the modelling
+Load the necessaary packages and the data
+
+```{r}
+library(lme4)
+politeness <- read.csv("politeness_data.csv")
+(head(politeness))
+which(is.na(politeness$frequency)) # missing data check
+```
+#Exploratory Data Analysis
+
+
+###Let's begin by looking at the relationship between politeness and pitch by means of a boxplot
+```{r}
+boxplot(frequency ~ attitude*gender,
+        col=c("white","lightgray"),politeness)
+```
+
+###Now for the relationship between scenario vs pitch
+```{r}
+boxplot(frequency~scenario,politeness)
+```
+###Relationship between subjects and frequency
+```{r}
+boxplot(frequency~scenario,politeness)
+```
+
+##Why Mixed Effects Model?
+Good Question, Because there are both *fixed* and *random effects* present.
+
+*what are these fixed and random effects and how do you classify them?*
+A thumb rule for knowing fixed effects are that they exhaust "the levels of a factor" .For example *gender* is always a fixed effect because there can be only 2 types:-(male& female)
+*Scenarios* can be infinite in number , but for this experiment we took a random sample of only 7 scenarios.In this kind of situation where covariates respresent a sample of the population , we call these covariates "random effects". 
+
+##Construction of Linear Mixed Model
+```{r}
+politeness.model <- lmer(frequency~attitude+(1|subject)+(1|scenario),data=politeness)
+summary(politeness.model)
+```
+In the **random effects** section we see three items:(*scenario,subject,residual*) ,
+The variation in *frequency/pitch* due to 225 or the proportion of variance explained by scenario is $\frac{219}{219+4015+646}\times100\sim5\%$
+Similarly *subject* explains $82\%$ of the variance and $13\%$ is explained by unknown factors which we include them in errors.
+For the **fixed effects** part
+The coefficient "attitudepol" is the slope for the categorical effect of politeness.
+Minus 19.695 means that to go from "informal" to "polite", you have to go down -19.695 Hz. In other words: pitch is lower in polite speech than in informal speech, by about 20 Hz.
+
+Now, Let's add **gender** as an additional fixed effect:
+```{r}
+politeness.model2 <-  lmer(frequency ~ attitude +
+                          gender + (1|subject) +
+                          (1|scenario), data=politeness)
+summary(politeness.model2)
+```
+Note that compared to our earlier model without the fixed effect gender, the variation that's associated with the random effect *"subject"* dropped considerably.This is because the variation that's due to gender was confounded with the variation that's due to subject.
+
+We see that males and females differ by about 109 Hz. And the intercept is now much higher (256.846 Hz), as it now represents the female category (for the informal condition). The coefficient for the effect of attitude didn't change much.
+
+###When we want attitude to have their own slopes
+```{r}
+politeness.model3 <-  lmer(frequency ~ scenario + gender + (1 + attitude | subject),  data = politeness)
+summary(politeness.model3)
+```
+
+Which **model** is the most useful among them?
+
+```{r}
+anova(politeness.model,politeness.model2,politeness.model3)
+```
+
+We can clearly see that politeness.model2 is the best model among these 3.
