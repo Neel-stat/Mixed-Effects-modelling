@@ -1,5 +1,6 @@
 ---
 title: "Mixed effect Model"
+author: "Neelotpal Das"
 output: html_document
 ---
 
